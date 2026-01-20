@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8" />
+  <title>Dream Earth</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <!-- Leaflet CSS -->
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+  />
+  
+ 
+
+
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+    }
+    #map {
+      width: 100%;
+      height: 100%;
+      background: #111;
+    }
+	
+	
+	 /* 梦的轻微呼吸动画 */
+@keyframes dreamBreath {
+  0%   { transform: scale(1);   opacity: 1; }
+  50%  { transform: scale(1.3); opacity: 0.9; }
+  100% { transform: scale(1);   opacity: 1; }
+}
+
+/* 只给“新梦”用 */
+.dream-breath {
+  animation: dreamBreath 6s ease-in-out infinite;
+  transform-origin: center;
+}
+  </style>
+</head>
+<body>
+
+<div id="map"></div>
+
+<!-- Leaflet JS -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<script>
+
+// 城市 → 坐标 对照表
+var cityCoordinates = {
+  "北京": [39.9042, 116.4074],
+  "上海": [31.2304, 121.4737],
+  "杭州": [30.2741, 120.1551],
+  "宁波": [29.8683, 121.5440],
+  "广州": [23.1291, 113.2644],
+  "深圳": [22.5431, 114.0579],
+  "成都": [30.5728, 104.0668],
+  "武汉": [30.5928, 114.3055]
+};
+
+/*************************
+ * 1. 初始化地图
+ *************************/
+ // 从网址中读取位置参数
+var params = new URLSearchParams(window.location.search);
+var lat = params.get('lat');
+var lng = params.get('lng');
+
+ 
+var center = [30, 0];
+var zoom = 2;
+
+if (lat && lng) {
+  center = [parseFloat(lat), parseFloat(lng)];
+  zoom = 6;
+}
+
+var map = L.map('map').setView(center, zoom);
+
+
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  maxZoom: 19
+}).addTo(map);
+
+/*************************
+ * 2. 情绪 → 颜色（记录优先版）
+ *************************/
+var emotionColors = {
+  calm:      '#A7B8C9', // 清晨淡蓝
+  bright:    '#F0E2A3', // 正午淡黄
+  heavy:     '#6C7A89', // 暴雨前灰蓝
+  confused:  '#C4C6C8', // 阴云淡灰
+  fear:      '#3A1F1F', // 克制暗黑红
+  forgotten: '#FFFFFF' // 记不清 / 白
+};
+
+/*************************
+ * 3. 读取 / 初始化梦的数据
+ *************************/
+var savedDreams = localStorage.getItem('dreams');
+
+var dreams = savedDreams
+  ? JSON.parse(savedDreams)
+  : [
+      {
+        city: '北京',
+        location: [39.9042, 116.4074],
+        date: '2025-11-12',
+        text: '我在梦里一直走在一条回家的路上。',
+        emotion: 'heavy',
+        opacity: 0.5
+      },
+      {
+        city: '上海',
+        location: [31.2304, 121.4737],
+        date: '2026-01-18',
+        text: '我只记得自己做了一个梦，但醒来后什么都想不起来。',
+        emotion: 'forgotten',
+        opacity: 0.3
+      }
+    ];
+dreams.sort((a, b) => {
+  return (a.createdAt || 0) - (b.createdAt || 0);
+});
+
+
+// 只存一次
+//localStorage.setItem('dreams', JSON.stringify(dreams));
+
+/*************************
+ * 4. 把“梦”画到世界上
+ *************************/
+dreams.forEach(function(dream) {
+
+// 如果这个梦没有位置，就跳过（先不画）
+if (!dream.location) return;
+
+  // 根据日期计算梦的“年龄”
+  var today = new Date();
+  var dreamDate = new Date(dream.date);
+  var daysPassed = Math.floor(
+    (today - dreamDate) / (1000 * 60 * 60 * 24)
+  );
+  var isNewDream = daysPassed <= 30;
+
+  // 根据时间让梦变得安静
+ var timeOpacity = 0.6;
+
+if (daysPassed > 7) timeOpacity = 0.35;
+if (daysPassed > 30) timeOpacity = 0.25;
+if (daysPassed > 90) timeOpacity = 0.15;
+if (daysPassed > 180) timeOpacity = 0.1;
+if (daysPassed > 270) timeOpacity = 0.05;
+if (daysPassed > 365) timeOpacity = 0.03;
+if (daysPassed > 730) timeOpacity = 0;
+
+
+  // 让同城的梦稍微分散
+  var offsetLat = (Math.random() - 0.5) * 0.3;
+  var offsetLng = (Math.random() - 0.5) * 0.3;
+
+  var dreamLocation = [
+    dream.location[0] + offsetLat,
+    dream.location[1] + offsetLng
+  ];
+
+  var color = emotionColors[dream.emotion] || '#AAAAAA';
+  
+if (timeOpacity <= 0) return;
+
+var marker = L.circleMarker(dreamLocation, {
+  radius: isNewDream ? 10 : 6,   // 新梦更大
+  stroke: false,
+  fillColor: color,
+  fillOpacity: timeOpacity
+}).addTo(map);
+if (isNewDream) {
+  setTimeout(function () {
+    marker.setRadius(6);
+  }, 5000); // 5 秒后恢复正常大小
+}
+
+
+// 如果是新梦，让它呼吸
+//if (isNewDream) {
+  //marker.getElement().classList.add('dream-breath');
+// }
+
+// 弹窗
+marker.bindPopup(`
+  <strong>🌙 ${dream.date} 的梦</strong><br/>
+  日期：${dream.date}<br/>
+  地点：${dream.city}<br/><br/>
+  ${dream.text}
+`);
+
+});
+
+</script>
+</body>
+</html>

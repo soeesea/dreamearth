@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8">
+  <title>记录一个梦 · Dream Earth</title>
+
+  <style>
+    body {
+      margin: 0;
+      padding: 40px;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #111;
+      color: #ddd;
+    }
+
+    h1 {
+      font-size: 24px;
+      margin-bottom: 30px;
+      font-weight: normal;
+    }
+
+    label {
+      display: block;
+      margin-top: 20px;
+      margin-bottom: 6px;
+      font-size: 14px;
+      color: #aaa;
+    }
+
+    input, textarea, select {
+      width: 100%;
+      padding: 10px;
+      background: #1a1a1a;
+      border: 1px solid #333;
+      color: #ddd;
+      font-size: 14px;
+    }
+
+    textarea {
+      min-height: 100px;
+      resize: vertical;
+    }
+
+    button {
+      margin-top: 30px;
+      padding: 12px 20px;
+      background: #222;
+      color: #ddd;
+      border: 1px solid #333;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background: #2a2a2a;
+    }
+  </style>
+</head>
+
+<body>
+
+  <h1>记录一个梦</h1>
+
+  <label>日期</label>
+  <input type="date" id="date">
+
+  <label>城市</label>
+  <input type="text" id="city" placeholder="例如：北京">
+
+  <label>梦的一句话</label>
+  <textarea id="text" placeholder="我只记得一个模糊的片段……"></textarea>
+
+  <label>梦的情绪</label>
+  <select id="emotion">
+    <option value="calm">平静</option>
+    <option value="bright">愉快</option>
+    <option value="heavy">沉重</option>
+    <option value="confused">困惑</option>
+    <option value="fear">恐惧</option>
+    <option value="forgotten">记不清了</option>
+  </select>
+
+  <button onclick="saveDream()">记录这个梦</button>
+
+  <script>
+    // 默认日期是今天
+    document.getElementById('date').valueAsDate = new Date();
+	
+	
+	// 城市 → 坐标 对照表
+const cityCoordinates = {
+  "北京": [39.9042, 116.4074],
+  "上海": [31.2304, 121.4737],
+  "杭州": [30.2741, 120.1551],
+  "宁波": [29.8683, 121.5440],
+  "广州": [23.1291, 113.2644],
+  "深圳": [22.5431, 114.0579],
+  "成都": [30.5728, 104.0668],
+  "武汉": [30.5928, 114.3055]
+};
+
+
+   function saveDream() {
+const city = document.getElementById('city').value;
+
+const dream = {
+  date: document.getElementById('date').value,
+  city: city,
+  text: document.getElementById('text').value,
+  emotion: document.getElementById('emotion').value,
+  createdAt: Date.now(),
+  location: cityCoordinates[city] || null
+};
+
+
+  // 读取已有的梦
+  let dreams = JSON.parse(localStorage.getItem('dreams') || '[]');
+
+  // 把新梦放进去
+  dreams.unshift(dream);
+
+  // 保存回本地
+  localStorage.setItem('dreams', JSON.stringify(dreams));
+
+  alert("这个梦已经被留下来了。");
+
+  // 清空输入（可选）
+  document.getElementById('text').value = '';
+}
+
+  </script>
+
+</body>
+</html>
